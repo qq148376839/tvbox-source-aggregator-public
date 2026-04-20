@@ -7,6 +7,7 @@ export const DEFAULT_FETCH_TIMEOUT_MS = 5000; // fetch 配置 JSON 超时
 
 // KV keys
 export const KV_MERGED_CONFIG = 'merged_config';
+export const KV_MERGED_CONFIG_FULL = 'merged_config_full'; // 黑名单过滤前的完整配置（供配置编辑器使用）
 export const KV_SOURCE_URLS = 'source_urls';
 export const KV_LAST_UPDATE = 'last_update';
 export const KV_MANUAL_SOURCES = 'manual_sources';

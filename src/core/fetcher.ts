@@ -3,30 +3,77 @@
 import { DEFAULT_FETCH_TIMEOUT_MS } from './config';
 import type { TVBoxConfig, SourcedConfig, SourceEntry } from './types';
 
+const MAX_MULTI_REPO_DEPTH = 3; // 多仓最大展开深度
+
 /**
  * 批量获取配置 JSON，并发执行，带超时
+ * 自动检测多仓格式（storeHouse / urls），递归展开（最多 3 层）
  * 返回成功获取的配置列表（失败的静默跳过）
  */
 export async function fetchConfigs(
   sources: SourceEntry[],
   timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
 ): Promise<SourcedConfig[]> {
+  const configs: SourcedConfig[] = [];
+  const seen = new Set<string>(); // URL 去重，防循环引用
+
+  await expandSources(sources, configs, seen, timeoutMs, 0);
+
+  console.log(`[fetcher] Fetched ${configs.length} configs from ${sources.length} top-level sources`);
+  return configs;
+}
+
+/**
+ * 递归展开多仓源
+ */
+async function expandSources(
+  sources: SourceEntry[],
+  configs: SourcedConfig[],
+  seen: Set<string>,
+  timeoutMs: number,
+  depth: number,
+): Promise<void> {
+  // 去重
+  const uniqueSources = sources.filter(s => {
+    if (seen.has(s.url)) return false;
+    seen.add(s.url);
+    return true;
+  });
+
+  if (uniqueSources.length === 0) return;
+
+  const tag = depth === 0 ? '' : ` (depth ${depth})`;
+  console.log(`[fetcher] Fetching ${uniqueSources.length} sources${tag}...`);
+
   const results = await Promise.allSettled(
-    sources.map((source) => fetchSingleConfig(source, timeoutMs)),
+    uniqueSources.map((source) => fetchSingleConfig(source, timeoutMs)),
   );
 
-  const configs: SourcedConfig[] = [];
+  const multiRepoChildren: SourceEntry[] = [];
+
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result.status === 'fulfilled' && result.value) {
-      configs.push(result.value);
+      if (isMultiRepoConfig(result.value.config)) {
+        const children = extractMultiRepoEntries(result.value.config, result.value.sourceName);
+        console.log(`[fetcher] Multi-repo: ${uniqueSources[i].url} → ${children.length} sub-sources`);
+        if (depth < MAX_MULTI_REPO_DEPTH) {
+          multiRepoChildren.push(...children);
+        } else {
+          console.log(`[fetcher] Max depth reached, skipping expansion of ${uniqueSources[i].url}`);
+        }
+      } else {
+        configs.push(result.value);
+      }
     } else if (result.status === 'rejected') {
-      console.warn(`[fetcher] Failed to fetch ${sources[i].url}: ${result.reason}`);
+      console.warn(`[fetcher] Failed: ${uniqueSources[i].url}: ${result.reason}`);
     }
   }
 
-  console.log(`[fetcher] Fetched ${configs.length}/${sources.length} configs successfully`);
-  return configs;
+  // 递归展开子多仓
+  if (multiRepoChildren.length > 0) {
+    await expandSources(multiRepoChildren, configs, seen, timeoutMs, depth + 1);
+  }
 }
 
 /**
@@ -120,6 +167,51 @@ function tryParseJson(text: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * 检测是否为多仓格式（索引 JSON 而非单仓 TVBoxConfig）
+ * 支持两种格式：
+ * - storeHouse: {"storeHouse": [{"sourceName": "...", "sourceUrl": "..."}]}
+ * - urls: {"urls": [{"name": "...", "url": "..."}]}（需排除有 sites 的单仓）
+ */
+function isMultiRepoConfig(config: TVBoxConfig): boolean {
+  const raw = config as Record<string, unknown>;
+  if (Array.isArray(raw.storeHouse)) return true;
+  if (Array.isArray(raw.urls) && !config.sites) return true;
+  return false;
+}
+
+/**
+ * 从多仓 JSON 中提取子源 URL 列表
+ */
+function extractMultiRepoEntries(config: TVBoxConfig, parentName: string): SourceEntry[] {
+  const raw = config as Record<string, unknown>;
+  const entries: SourceEntry[] = [];
+
+  if (Array.isArray(raw.storeHouse)) {
+    for (const item of raw.storeHouse as Record<string, unknown>[]) {
+      const url = item?.sourceUrl;
+      if (typeof url === 'string' && url.trim()) {
+        entries.push({
+          name: typeof item.sourceName === 'string' ? item.sourceName : parentName,
+          url: url.trim(),
+        });
+      }
+    }
+  } else if (Array.isArray(raw.urls)) {
+    for (const item of raw.urls as Record<string, unknown>[]) {
+      const url = item?.url;
+      if (typeof url === 'string' && url.trim()) {
+        entries.push({
+          name: typeof item.name === 'string' ? item.name : parentName,
+          url: url.trim(),
+        });
+      }
+    }
+  }
+
+  return entries;
 }
 
 /**

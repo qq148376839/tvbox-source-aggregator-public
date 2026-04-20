@@ -139,6 +139,40 @@ function findFullSpiderString(configs: SourcedConfig[], jarUrl: string): string 
 }
 
 /**
+ * 清洗空数据条目
+ * 过滤掉关键字段为空的 sites/parses/lives/doh
+ */
+export function cleanEmptyEntries(config: TVBoxConfig): TVBoxConfig {
+  const before = {
+    sites: config.sites?.length || 0,
+    parses: config.parses?.length || 0,
+    lives: config.lives?.length || 0,
+    doh: config.doh?.length || 0,
+  };
+
+  const sites = (config.sites || []).filter(s => s.key && s.api);
+  const parses = (config.parses || []).filter(p => p.name && p.url);
+  const lives = (config.lives || []).filter(l => (l.url || l.api));
+  const doh = (config.doh || []).filter(d => d.name && d.url);
+
+  const removed =
+    (before.sites - sites.length) +
+    (before.parses - parses.length) +
+    (before.lives - lives.length) +
+    (before.doh - doh.length);
+
+  if (removed > 0) {
+    console.log(
+      `[cleaner] Removed ${removed} empty entries: ` +
+      `${before.sites - sites.length} sites, ${before.parses - parses.length} parses, ` +
+      `${before.lives - lives.length} lives, ${before.doh - doh.length} doh`,
+    );
+  }
+
+  return { ...config, sites, parses, lives, doh };
+}
+
+/**
  * 清洗本地引用（127.0.0.1 / localhost）
  * 这些地址依赖用户本地 TVBox 代理服务，聚合后对其他用户是死链
  */

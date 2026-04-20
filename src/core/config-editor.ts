@@ -514,6 +514,33 @@ body::before{
   color:var(--text-dim);
 }
 
+/* Header top row */
+.header-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+/* Language toggle */
+.lang-toggle{
+  font-family:var(--mono);
+  font-size:0.65rem;
+  font-weight:500;
+  padding:4px 10px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:transparent;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all 0.2s;
+  letter-spacing:0.05em;
+}
+
+.lang-toggle:hover{
+  border-color:var(--text-dim);
+  color:var(--text);
+}
+
 /* Footer */
 .footer{
   margin-top:48px;
@@ -543,27 +570,31 @@ body::before{
 }
 </style>
 </head>
-<body>
+<body style="opacity:0">
 
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <h2>Config Editor</h2>
-    <p>Enter admin token</p>
-    <div class="error-msg" id="loginError">Invalid token</div>
-    <input type="password" id="tokenInput" placeholder="Admin Token" autofocus>
-    <button class="btn" style="width:100%" onclick="doLogin()">Login</button>
+    <h2 data-i18n="loginTitle">Config Editor</h2>
+    <p data-i18n="loginSubtitle">Enter admin token</p>
+    <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
+    <input type="password" id="tokenInput" data-i18n-placeholder="tokenPh" placeholder="Admin Token" autofocus>
+    <button class="btn" style="width:100%" data-i18n="login" onclick="doLogin()">Login</button>
   </div>
 </div>
 
 <!-- Main -->
 <div class="container" id="mainContent" style="display:none">
   <header class="header">
-    <div class="header-label">Config Editor</div>
+    <div class="header-top">
+      <div class="header-label" data-i18n="headerLabel">Config Editor</div>
+      <button class="lang-toggle" id="langToggle" onclick="toggleLang()">EN</button>
+    </div>
     <h1 class="header-title">TVBox <span>Config</span></h1>
     <div class="header-nav">
-      <a href="/status">Dashboard</a>
-      <a href="/admin">Admin</a>
+      <a href="/admin" data-i18n="navAdmin">Admin</a>
+      <a href="/admin/config-editor" data-i18n="navConfigEditor">Config Editor</a>
+      <a href="/status" data-i18n="navDashboard">Dashboard</a>
     </div>
   </header>
 
@@ -576,7 +607,7 @@ body::before{
 
   <!-- Search -->
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="搜索名称、API、URL..." oninput="doSearch()">
+    <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="搜索名称、API、URL..." oninput="doSearch()">
   </div>
 
   <!-- Stats -->
@@ -584,49 +615,132 @@ body::before{
 
   <!-- Sites panel -->
   <div class="tab-panel active" id="panelSites">
-    <div class="loading-msg" id="loadingSites">加载中...</div>
+    <div class="loading-msg" id="loadingSites" data-i18n="loading">加载中...</div>
   </div>
 
   <!-- Parses panel -->
   <div class="tab-panel" id="panelParses">
-    <div class="loading-msg" id="loadingParses">加载中...</div>
+    <div class="loading-msg" id="loadingParses" data-i18n="loading">加载中...</div>
   </div>
 
   <!-- Lives panel -->
   <div class="tab-panel" id="panelLives">
-    <div class="loading-msg" id="loadingLives">加载中...</div>
+    <div class="loading-msg" id="loadingLives" data-i18n="loading">加载中...</div>
   </div>
 
   <div class="footer">
-    TVBox Config Editor &middot; Blacklisted items are excluded from aggregated output
+    <span data-i18n="footer">TVBox Config Editor &middot; Blacklisted items are excluded from aggregated output</span>
   </div>
 </div>
 
 <script>
+// --- i18n ---
+const _translations = {
+  en: {
+    loginTitle:'Config Editor', loginSubtitle:'Enter admin token',
+    invalidToken:'Invalid token', tokenPh:'Admin Token', login:'Login',
+    networkError:'Network error',
+    headerLabel:'Config Editor', navAdmin:'Admin', navConfigEditor:'Config Editor', navDashboard:'Dashboard',
+    searchPh:'Search name, API, URL...', loading:'Loading...',
+    available:'Available:', blocked:'Blocked:',
+    sites:'sites', parses:'parses', lives:'lives',
+    restore:'Restore', block:'Block',
+    groupOther:'Other', groupRemotePrefix:'Remote: ', groupRemote:'Remote',
+    siteType0:'XML site: fetches video data via XML API',
+    siteType1:'JSON site (MacCMS): fetches video data via JSON API',
+    siteType3:'JAR plugin: fetches data via Java spider plugin, requires spider package',
+    siteType4:'Remote site: uses remotely configured site',
+    parseType0:'Sniffer parse: extracts video URL by sniffing web pages',
+    parseType1:'JSON parse: returns video URL in JSON format directly',
+    parseType2:'JSON extended parse: JSON parse with extra parameters',
+    parseType3:'Aggregated parse: combines results from multiple parsers',
+    parseType4:'Super parse: advanced composite parse mode',
+    liveType0:'Live source: M3U/TXT format channel list file',
+    liveType3:'Live plugin: fetches channels via JAR/Python plugin',
+    typePrefix:'Type ',
+    footer:'TVBox Config Editor &middot; Blacklisted items are excluded from aggregated output',
+  },
+  zh: {
+    loginTitle:'配置编辑器', loginSubtitle:'请输入管理令牌',
+    invalidToken:'无效的令牌', tokenPh:'管理令牌', login:'登录',
+    networkError:'网络错误',
+    headerLabel:'配置编辑器', navAdmin:'管理', navConfigEditor:'配置编辑', navDashboard:'仪表盘',
+    searchPh:'搜索名称、API、URL...', loading:'加载中...',
+    available:'可用:', blocked:'已屏蔽:',
+    sites:'站点', parses:'解析', lives:'直播',
+    restore:'恢复', block:'屏蔽',
+    groupOther:'其他', groupRemotePrefix:'远程: ', groupRemote:'远程源',
+    siteType0:'XML 站点：通过 XML 接口获取影视数据',
+    siteType1:'JSON 站点（MacCMS）：通过 JSON API 获取影视数据',
+    siteType3:'JAR 插件：通过 Java 爬虫插件获取数据，需要 spider 包',
+    siteType4:'远程站点：使用远程配置的站点',
+    parseType0:'嗅探解析：通过网页嗅探提取视频地址',
+    parseType1:'JSON 解析：直接返回 JSON 格式的视频地址',
+    parseType2:'JSON 扩展解析：带扩展参数的 JSON 解析',
+    parseType3:'聚合解析：合并多个解析接口的结果',
+    parseType4:'超级解析：高级复合解析模式',
+    liveType0:'直播源：M3U/TXT 格式的频道列表文件',
+    liveType3:'直播插件：通过 JAR/Python 插件获取频道',
+    typePrefix:'类型 ',
+    footer:'TVBox 配置编辑器 &middot; 被屏蔽的项目不会出现在聚合输出中',
+  }
+};
+
+function getLang() {
+  const s = localStorage.getItem('lang');
+  if (s === 'en' || s === 'zh') return s;
+  return navigator.language?.startsWith('zh') ? 'zh' : 'en';
+}
+
+function _t(key) { const l = getLang(); return _translations[l]?.[key] || _translations.en[key] || key; }
+
+function applyLang(lang) {
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.dataset.i18n;
+    const v = _translations[lang]?.[k];
+    if (v) el.innerHTML = v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const k = el.dataset.i18nPlaceholder;
+    const v = _translations[lang]?.[k];
+    if (v) el.placeholder = v;
+  });
+  const toggle = document.getElementById('langToggle');
+  if (toggle) toggle.textContent = lang === 'zh' ? 'EN' : '中文';
+  document.body.style.opacity = '1';
+}
+
+function toggleLang() {
+  const next = getLang() === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('lang', next);
+  applyLang(next);
+  if (DATA) render();
+}
+
 const $ = id => document.getElementById(id);
 let TOKEN = '';
 let DATA = null;
 let CURRENT_TAB = 'sites';
 
-// Type tooltips (Chinese)
 const SITE_TYPE_TIPS = {
-  0: 'XML 站点：通过 XML 接口获取影视数据',
-  1: 'JSON 站点（MacCMS）：通过 JSON API 获取影视数据',
-  3: 'JAR 插件：通过 Java 爬虫插件获取数据，需要 spider 包',
-  4: '远程站点：使用远程配置的站点',
+  0: () => _t('siteType0'),
+  1: () => _t('siteType1'),
+  3: () => _t('siteType3'),
+  4: () => _t('siteType4'),
 };
 
 const PARSE_TYPE_TIPS = {
-  0: '嗅探解析：通过网页嗅探提取视频地址',
-  1: 'JSON 解析：直接返回 JSON 格式的视频地址',
-  2: 'JSON 扩展解析：带扩展参数的 JSON 解析',
-  3: '聚合解析：合并多个解析接口的结果',
-  4: '超级解析：高级复合解析模式',
+  0: () => _t('parseType0'),
+  1: () => _t('parseType1'),
+  2: () => _t('parseType2'),
+  3: () => _t('parseType3'),
+  4: () => _t('parseType4'),
 };
 
 const LIVE_TYPE_TIPS = {
-  0: '直播源：M3U/TXT 格式的频道列表文件',
-  3: '直播插件：通过 JAR/Python 插件获取频道',
+  0: () => _t('liveType0'),
+  3: () => _t('liveType3'),
 };
 
 // Spider class grouping
@@ -634,11 +748,11 @@ function groupSites(sites) {
   const groups = new Map();
   for (const s of sites) {
     const api = s.api || '';
-    let group = '其他';
+    let group = _t('groupOther');
     if (api.startsWith('csp_') || api.startsWith('py_') || api.startsWith('js_')) {
       group = api;
     } else if (api.startsWith('http')) {
-      try { group = '远程: ' + new URL(api).hostname; } catch { group = '远程源'; }
+      try { group = _t('groupRemotePrefix') + new URL(api).hostname; } catch { group = _t('groupRemote'); }
     }
     if (!groups.has(group)) groups.set(group, []);
     groups.get(group).push(s);
@@ -670,7 +784,7 @@ async function loadData() {
     $('mainContent').style.display = 'block';
     render();
   } catch (e) {
-    $('loginError').textContent = 'Network error';
+    $('loginError').textContent = _t('networkError');
     $('loginError').style.display = 'block';
   }
 }
@@ -700,15 +814,16 @@ function updateStats() {
   const bp = DATA.parses.filter(p => p.blocked).length;
   const bl = DATA.lives.filter(l => l.blocked).length;
   $('statsBar').innerHTML =
-    '<div class="stat">可用: <span class="num">' + (DATA.sites.length - bs) + '</span> sites, '
-    + '<span class="num">' + (DATA.parses.length - bp) + '</span> parses, '
-    + '<span class="num">' + (DATA.lives.length - bl) + '</span> lives</div>'
-    + (bs + bp + bl > 0 ? '<div class="stat">已屏蔽: <span class="blocked-num">' + (bs + bp + bl) + '</span></div>' : '');
+    '<div class="stat">' + _t('available') + ' <span class="num">' + (DATA.sites.length - bs) + '</span> ' + _t('sites') + ', '
+    + '<span class="num">' + (DATA.parses.length - bp) + '</span> ' + _t('parses') + ', '
+    + '<span class="num">' + (DATA.lives.length - bl) + '</span> ' + _t('lives') + '</div>'
+    + (bs + bp + bl > 0 ? '<div class="stat">' + _t('blocked') + ' <span class="blocked-num">' + (bs + bp + bl) + '</span></div>' : '');
 }
 
 function typeSpan(type, tips) {
   const t = type ?? 0;
-  const tip = tips[t] || '类型 ' + t;
+  const tipFn = tips[t];
+  const tip = tipFn ? tipFn() : _t('typePrefix') + t;
   return '<span class="item-type t' + t + '">T' + t + '<span class="tooltip">' + tip + '</span></span>';
 }
 
@@ -736,8 +851,8 @@ function renderSites() {
 function siteRow(s) {
   const cls = s.blocked ? 'item blocked' : 'item';
   const btn = s.blocked
-    ? '<button class="btn sm secondary" onclick="unblock(\\'sites\\',\\'' + s.fingerprint + '\\')">恢复</button>'
-    : '<button class="btn sm danger" onclick="block(\\'sites\\',\\'' + s.fingerprint + '\\')">屏蔽</button>';
+    ? '<button class="btn sm secondary" onclick="unblock(\\'sites\\',\\'' + s.fingerprint + '\\')">' + _t('restore') + '</button>'
+    : '<button class="btn sm danger" onclick="block(\\'sites\\',\\'' + s.fingerprint + '\\')">' + _t('block') + '</button>';
   return '<div class="' + cls + '" data-search="' + esc((s.name||'') + ' ' + s.key + ' ' + s.api) + '">'
     + '<span class="item-name" title="' + esc(s.key) + '">' + esc(s.name || s.key) + '</span>'
     + typeSpan(s.type, SITE_TYPE_TIPS)
@@ -760,8 +875,8 @@ function parseRow(p) {
   const cls = p.blocked ? 'item blocked' : 'item';
   const id = p.url;
   const btn = p.blocked
-    ? '<button class="btn sm secondary" onclick="unblock(\\'parses\\',\\'' + esc(id) + '\\')">恢复</button>'
-    : '<button class="btn sm danger" onclick="block(\\'parses\\',\\'' + esc(id) + '\\')">屏蔽</button>';
+    ? '<button class="btn sm secondary" onclick="unblock(\\'parses\\',\\'' + esc(id) + '\\')">' + _t('restore') + '</button>'
+    : '<button class="btn sm danger" onclick="block(\\'parses\\',\\'' + esc(id) + '\\')">' + _t('block') + '</button>';
   return '<div class="' + cls + '" data-search="' + esc((p.name||'') + ' ' + p.url) + '">'
     + '<span class="item-name">' + esc(p.name) + '</span>'
     + typeSpan(p.type, PARSE_TYPE_TIPS)
@@ -785,8 +900,8 @@ function liveRow(l) {
   const cls = l.blocked ? 'item blocked' : 'item';
   const btn = url
     ? (l.blocked
-      ? '<button class="btn sm secondary" onclick="unblock(\\'lives\\',\\'' + esc(url) + '\\')">恢复</button>'
-      : '<button class="btn sm danger" onclick="block(\\'lives\\',\\'' + esc(url) + '\\')">屏蔽</button>')
+      ? '<button class="btn sm secondary" onclick="unblock(\\'lives\\',\\'' + esc(url) + '\\')">' + _t('restore') + '</button>'
+      : '<button class="btn sm danger" onclick="block(\\'lives\\',\\'' + esc(url) + '\\')">' + _t('block') + '</button>')
     : '';
   return '<div class="' + cls + '" data-search="' + esc((l.name||'') + ' ' + url) + '">'
     + '<span class="item-name">' + esc(l.name || '(unnamed)') + '</span>'
@@ -870,6 +985,8 @@ async function unblock(type, id) {
     updateStats();
   } catch (e) { alert('Network error'); }
 }
+
+applyLang(getLang());
 
 // Check for saved token
 const saved = sessionStorage.getItem('admin_token');

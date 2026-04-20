@@ -449,6 +449,33 @@ body::before{
   color:var(--red);
 }
 
+/* Header top row */
+.header-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+/* Language toggle */
+.lang-toggle{
+  font-family:var(--mono);
+  font-size:0.65rem;
+  font-weight:500;
+  padding:4px 10px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:transparent;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all 0.2s;
+  letter-spacing:0.05em;
+}
+
+.lang-toggle:hover{
+  border-color:var(--text-dim);
+  color:var(--text);
+}
+
 /* Footer */
 .footer{
   margin-top:36px;
@@ -491,53 +518,56 @@ body::before{
 }
 </style>
 </head>
-<body>
+<body style="opacity:0">
 
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <h2>Admin Access</h2>
-    <p>TVBox Aggregator Management</p>
-    <div class="error-msg" id="loginError">Invalid token</div>
-    <input type="password" id="loginInput" placeholder="Enter admin token" autocomplete="off">
-    <button class="btn" style="width:100%" onclick="doLogin()">Login</button>
+    <h2 data-i18n="loginTitle">Admin Access</h2>
+    <p data-i18n="loginSubtitle">TVBox Aggregator Management</p>
+    <div class="error-msg" id="loginError" data-i18n="invalidToken">Invalid token</div>
+    <input type="password" id="loginInput" placeholder="Enter admin token" data-i18n-placeholder="enterToken" autocomplete="off">
+    <button class="btn" style="width:100%" onclick="doLogin()" data-i18n="login">Login</button>
   </div>
 </div>
 
 <!-- Main content -->
 <div class="container" id="mainContent" style="display:none">
   <header class="header">
-    <div class="header-label">Admin Console</div>
+    <div class="header-top">
+      <div class="header-label" data-i18n="headerLabel">Admin Console</div>
+      <button class="lang-toggle" id="langToggle" onclick="toggleLang()">中文</button>
+    </div>
     <h1 class="header-title">Source <span>Manager</span></h1>
     <nav class="header-nav">
-      <a href="/">Config</a>
-      <a href="/status">Dashboard</a>
+      <a href="/admin/config-editor" data-i18n="navConfigEditor">Config Editor</a>
+      <a href="/status" data-i18n="navDashboard">Dashboard</a>
     </nav>
   </header>
 
   <!-- Add source -->
   <div class="section">
-    <div class="section-title">Add Source</div>
+    <div class="section-title" data-i18n="addSource">Add Source</div>
     <div class="add-form">
-      <input class="name-input" type="text" id="addName" placeholder="Name (optional)">
-      <input type="url" id="addUrl" placeholder="TVBox config JSON URL">
-      <button class="btn" id="addBtn" onclick="addSource()">Add</button>
+      <input class="name-input" type="text" id="addName" placeholder="Name (optional)" data-i18n-placeholder="nameOptional">
+      <input type="url" id="addUrl" placeholder="TVBox config JSON URL" data-i18n-placeholder="configJsonUrl">
+      <button class="btn" id="addBtn" onclick="addSource()" data-i18n="add">Add</button>
     </div>
   </div>
 
   <!-- Aggregation control -->
   <div class="section">
-    <div class="section-title">Aggregation</div>
+    <div class="section-title" data-i18n="aggregation">Aggregation</div>
     <div class="action-bar">
-      <span class="status-text" id="aggStatus">Last update: loading...</span>
-      <button class="btn" id="refreshBtn" onclick="triggerRefresh()">Refresh</button>
+      <span class="status-text" id="aggStatus" data-i18n="loadingStatus">Loading...</span>
+      <button class="btn" id="refreshBtn" onclick="triggerRefresh()" data-i18n="refresh">Refresh</button>
     </div>
   </div>
 
   <!-- Source list -->
   <div class="section">
     <div class="section-title">
-      <span>Sources</span>
+      <span data-i18n="sourcesList">Sources</span>
       <span class="count" id="sourceCount">0</span>
     </div>
     <div class="source-list" id="sourceList">
@@ -547,24 +577,24 @@ body::before{
 
   <!-- MacCMS Add -->
   <div class="section">
-    <div class="section-title">Add MacCMS Source</div>
+    <div class="section-title" data-i18n="addMacCMS">Add MacCMS Source</div>
     <div class="add-form">
-      <input class="name-input" type="text" id="mcKey" placeholder="Key (e.g. hongniuzy)">
-      <input class="name-input" type="text" id="mcName" placeholder="Name">
-      <input type="url" id="mcApi" placeholder="MacCMS API URL">
-      <button class="btn" id="mcAddBtn" onclick="addMacCMS()">Add</button>
+      <input class="name-input" type="text" id="mcKey" placeholder="Key (e.g. hongniuzy)" data-i18n-placeholder="mcKeyPh">
+      <input class="name-input" type="text" id="mcName" placeholder="Name" data-i18n-placeholder="mcNamePh">
+      <input type="url" id="mcApi" placeholder="MacCMS API URL" data-i18n-placeholder="mcApiPh">
+      <button class="btn" id="mcAddBtn" onclick="addMacCMS()" data-i18n="add">Add</button>
     </div>
     <div style="margin-top:8px;display:flex;gap:8px">
-      <button class="btn btn-sm" onclick="showBatchImport()">Batch Import</button>
+      <button class="btn btn-sm" onclick="showBatchImport()" data-i18n="batchImport">Batch Import</button>
     </div>
     <textarea id="mcBatchInput" style="display:none;width:100%;margin-top:8px;min-height:120px;font-family:var(--mono);font-size:0.75rem;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#fff;resize:vertical" placeholder='[{"key":"...","name":"...","api":"..."}]'></textarea>
-    <button class="btn btn-sm" id="mcBatchBtn" style="display:none;margin-top:8px" onclick="batchImportMacCMS()">Submit Batch</button>
+    <button class="btn btn-sm" id="mcBatchBtn" style="display:none;margin-top:8px" onclick="batchImportMacCMS()" data-i18n="submitBatch">Submit Batch</button>
   </div>
 
   <!-- MacCMS list -->
   <div class="section">
     <div class="section-title">
-      <span>MacCMS Sources</span>
+      <span data-i18n="macCMSSources">MacCMS Sources</span>
       <span class="count" id="mcCount">0</span>
     </div>
     <div class="source-list" id="mcList">
@@ -574,18 +604,18 @@ body::before{
 
   <!-- Live Sources Add -->
   <div class="section">
-    <div class="section-title">Add Live Source</div>
+    <div class="section-title" data-i18n="addLiveSource">Add Live Source</div>
     <div class="add-form">
-      <input class="name-input" type="text" id="liveName" placeholder="Name (e.g. iptv365)">
-      <input type="url" id="liveUrl" placeholder="m3u/txt URL">
-      <button class="btn" id="liveAddBtn" onclick="addLive()">Add</button>
+      <input class="name-input" type="text" id="liveName" placeholder="Name (e.g. iptv365)" data-i18n-placeholder="liveNamePh">
+      <input type="url" id="liveUrl" placeholder="m3u/txt URL" data-i18n-placeholder="liveUrlPh">
+      <button class="btn" id="liveAddBtn" onclick="addLive()" data-i18n="add">Add</button>
     </div>
   </div>
 
   <!-- Live Sources list -->
   <div class="section">
     <div class="section-title">
-      <span>Live Sources</span>
+      <span data-i18n="liveSources">Live Sources</span>
       <span class="count" id="liveCount">0</span>
     </div>
     <div class="source-list" id="liveList">
@@ -594,11 +624,117 @@ body::before{
   </div>
 
   <div class="footer">
-    TVBox Source Aggregator &middot; Admin Console
+    <span data-i18n="footer">TVBox Source Aggregator &middot; Admin Console</span>
   </div>
 </div>
 
 <script>
+// --- i18n ---
+const translations = {
+  en: {
+    loginTitle:'Admin Access', loginSubtitle:'TVBox Aggregator Management',
+    invalidToken:'Invalid token', enterToken:'Enter admin token', login:'Login',
+    connectionFailed:'Connection failed',
+    headerLabel:'Admin Console', navConfigEditor:'Config Editor', navDashboard:'Dashboard',
+    addSource:'Add Source', aggregation:'Aggregation', sourcesList:'Sources',
+    addMacCMS:'Add MacCMS Source', macCMSSources:'MacCMS Sources',
+    addLiveSource:'Add Live Source', liveSources:'Live Sources',
+    nameOptional:'Name (optional)', configJsonUrl:'TVBox config JSON URL',
+    mcKeyPh:'Key (e.g. hongniuzy)', mcNamePh:'Name', mcApiPh:'MacCMS API URL',
+    liveNamePh:'Name (e.g. iptv365)', liveUrlPh:'m3u/txt URL',
+    add:'Add', adding:'Adding...', batchImport:'Batch Import',
+    submitBatch:'Submit Batch',
+    refresh:'Refresh', running:'Running...', remove:'Remove', test:'Test',
+    loadingStatus:'Loading...',
+    lastUpdate:'Last update: ', neverUpdated:'Never updated — click Refresh',
+    failedLoadStatus:'Failed to load status',
+    noSources:'No sources configured. Add one above.',
+    loadingSources:'Loading sources...',
+    noMacCMS:'No MacCMS sources. Add one above.',
+    loadingMacCMS:'Loading MacCMS sources...',
+    noLives:'No live sources. Add one above.',
+    loadingLives:'Loading live sources...',
+    failedLoad:'Failed to load sources',
+    failedLoadMacCMS:'Failed to load MacCMS sources',
+    failedLoadLives:'Failed to load live sources',
+    sourceAdded:'Source added', sourceRemoved:'Source removed',
+    networkError:'Network error', testing:'Testing...',
+    valid:'Valid', invalidUnreachable:'Invalid / Unreachable',
+    liveSourceAdded:'Live source added', removed:'Removed',
+    invalidJson:'Invalid JSON', mustBeArray:'Must be a JSON array',
+    allFieldsRequired:'All fields required', importFailed:'Import failed',
+    aggregationStarted:'Aggregation started', refreshFailed:'Refresh failed',
+    footer:'TVBox Source Aggregator &middot; Admin Console',
+  },
+  zh: {
+    loginTitle:'管理登录', loginSubtitle:'TVBox 聚合器管理',
+    invalidToken:'无效的令牌', enterToken:'请输入管理令牌', login:'登录',
+    connectionFailed:'连接失败',
+    headerLabel:'管理控制台', navConfigEditor:'配置编辑', navDashboard:'仪表盘',
+    addSource:'添加源', aggregation:'聚合', sourcesList:'源列表',
+    addMacCMS:'添加 MacCMS 源', macCMSSources:'MacCMS 源列表',
+    addLiveSource:'添加直播源', liveSources:'直播源列表',
+    nameOptional:'名称（可选）', configJsonUrl:'TVBox 配置 JSON 地址',
+    mcKeyPh:'Key（如 hongniuzy）', mcNamePh:'名称', mcApiPh:'MacCMS API 地址',
+    liveNamePh:'名称（如 iptv365）', liveUrlPh:'m3u/txt 地址',
+    add:'添加', adding:'添加中...', batchImport:'批量导入',
+    submitBatch:'提交批量',
+    refresh:'刷新', running:'运行中...', remove:'删除', test:'测试',
+    loadingStatus:'加载中...',
+    lastUpdate:'上次更新: ', neverUpdated:'从未更新 — 点击刷新',
+    failedLoadStatus:'获取状态失败',
+    noSources:'暂无源。请在上方添加。',
+    loadingSources:'加载源中...',
+    noMacCMS:'暂无 MacCMS 源。请在上方添加。',
+    loadingMacCMS:'加载 MacCMS 源中...',
+    noLives:'暂无直播源。请在上方添加。',
+    loadingLives:'加载直播源中...',
+    failedLoad:'加载源失败',
+    failedLoadMacCMS:'加载 MacCMS 源失败',
+    failedLoadLives:'加载直播源失败',
+    sourceAdded:'源已添加', sourceRemoved:'源已删除',
+    networkError:'网络错误', testing:'测试中...',
+    valid:'有效', invalidUnreachable:'无效/不可达',
+    liveSourceAdded:'直播源已添加', removed:'已删除',
+    invalidJson:'无效的 JSON', mustBeArray:'必须是 JSON 数组',
+    allFieldsRequired:'所有字段必填', importFailed:'导入失败',
+    aggregationStarted:'聚合已开始', refreshFailed:'刷新失败',
+    footer:'TVBox 源聚合器 &middot; 管理控制台',
+  }
+};
+
+function getLang() {
+  const s = localStorage.getItem('lang');
+  if (s === 'en' || s === 'zh') return s;
+  return navigator.language?.startsWith('zh') ? 'zh' : 'en';
+}
+
+function t(key) { const l = getLang(); return translations[l]?.[key] || translations.en[key] || key; }
+
+function applyLang(lang) {
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.dataset.i18n;
+    const v = translations[lang]?.[k];
+    if (v) el.innerHTML = v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const k = el.dataset.i18nPlaceholder;
+    const v = translations[lang]?.[k];
+    if (v) el.placeholder = v;
+  });
+  const toggle = document.getElementById('langToggle');
+  if (toggle) toggle.textContent = lang === 'zh' ? 'EN' : '中文';
+  document.body.style.opacity = '1';
+}
+
+function toggleLang() {
+  const next = getLang() === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('lang', next);
+  applyLang(next);
+  loadAll();
+}
+
 let token = '';
 const $ = id => document.getElementById(id);
 
@@ -621,7 +757,7 @@ function doLogin() {
       $('loginInput').focus();
     }
   }).catch(() => {
-    $('loginError').textContent = 'Connection failed';
+    $('loginError').textContent = t('connectionFailed');
     $('loginError').style.display = 'block';
   });
 }
@@ -678,14 +814,14 @@ async function loadStatus() {
         hour:'2-digit', minute:'2-digit', second:'2-digit',
         hour12: false
       });
-      $('aggStatus').textContent = 'Last update: ' + fmt + ' | ' + d.sites + ' sites, ' + d.parses + ' parses, ' + d.lives + ' lives' + (d.liveSourceCount ? ', ' + d.liveSourceCount + ' live sources' : '');
+      $('aggStatus').textContent = t('lastUpdate') + fmt + ' | ' + d.sites + ' sites, ' + d.parses + ' parses, ' + d.lives + ' lives' + (d.liveSourceCount ? ', ' + d.liveSourceCount + ' live sources' : '');
       $('aggStatus').className = 'status-text';
     } else {
-      $('aggStatus').textContent = 'Never updated — click Refresh';
+      $('aggStatus').textContent = t('neverUpdated');
       $('aggStatus').className = 'status-text error';
     }
   } catch {
-    $('aggStatus').textContent = 'Failed to load status';
+    $('aggStatus').textContent = t('failedLoadStatus');
     $('aggStatus').className = 'status-text error';
   }
 }
@@ -698,7 +834,7 @@ async function loadSources() {
     $('sourceCount').textContent = sources.length;
 
     if (sources.length === 0) {
-      list.innerHTML = '<div class="empty">No sources configured. Add one above.</div>';
+      list.innerHTML = '<div class="empty">' + t('noSources') + '</div>';
       return;
     }
 
@@ -709,12 +845,12 @@ async function loadSources() {
           <div class="source-url">\${esc(s.url)}</div>
         </div>
         <div class="source-actions">
-          <button class="btn btn-sm btn-danger" onclick="removeSource('\${esc(s.url)}')">Remove</button>
+          <button class="btn btn-sm btn-danger" onclick="removeSource('\${esc(s.url)}')">\${t('remove')}</button>
         </div>
       </div>
     \`).join('');
   } catch {
-    list.innerHTML = '<div class="empty">Failed to load sources</div>';
+    list.innerHTML = '<div class="empty">' + t('failedLoad') + '</div>';
   }
 }
 
@@ -731,7 +867,7 @@ async function addSource() {
   const name = $('addName').value.trim() || '';
 
   const btn = $('addBtn');
-  btn.textContent = 'Adding...';
+  btn.textContent = t('adding');
   btn.className = 'btn loading';
 
   try {
@@ -742,18 +878,18 @@ async function addSource() {
     });
     const d = await res.json();
     if (res.ok) {
-      toast('Source added');
+      toast(t('sourceAdded'));
       $('addUrl').value = '';
       $('addName').value = '';
       loadSources();
     } else {
-      toast(d.error || 'Failed to add', 'error');
+      toast(d.error || t('failedLoad'), 'error');
     }
   } catch {
-    toast('Network error', 'error');
+    toast(t('networkError'), 'error');
   }
 
-  btn.textContent = 'Add';
+  btn.textContent = t('add');
   btn.className = 'btn';
 }
 
@@ -766,14 +902,14 @@ async function removeSource(url) {
       body: JSON.stringify({ url })
     });
     if (res.ok) {
-      toast('Source removed');
+      toast(t('sourceRemoved'));
       loadSources();
     } else {
       const d = await res.json();
-      toast(d.error || 'Failed to remove', 'error');
+      toast(d.error || t('remove'), 'error');
     }
   } catch {
-    toast('Network error', 'error');
+    toast(t('networkError'), 'error');
   }
 }
 
@@ -786,7 +922,7 @@ async function loadMacCMS() {
     $('mcCount').textContent = sources.length;
 
     if (sources.length === 0) {
-      list.innerHTML = '<div class="empty">No MacCMS sources. Add one above.</div>';
+      list.innerHTML = '<div class="empty">' + t('noMacCMS') + '</div>';
       return;
     }
 
@@ -798,13 +934,13 @@ async function loadMacCMS() {
           <div class="source-url">\${esc(s.api)}</div>
         </div>
         <div class="source-actions" style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="validateMC('\${esc(s.api)}')">Test</button>
-          <button class="btn btn-sm btn-danger" onclick="removeMC('\${esc(s.key)}')">Remove</button>
+          <button class="btn btn-sm" onclick="validateMC('\${esc(s.api)}')">\${t('test')}</button>
+          <button class="btn btn-sm btn-danger" onclick="removeMC('\${esc(s.key)}')">\${t('remove')}</button>
         </div>
       </div>
     \`).join('');
   } catch {
-    list.innerHTML = '<div class="empty">Failed to load MacCMS sources</div>';
+    list.innerHTML = '<div class="empty">' + t('failedLoadMacCMS') + '</div>';
   }
 }
 
@@ -812,10 +948,10 @@ async function addMacCMS() {
   const key = $('mcKey').value.trim();
   const name = $('mcName').value.trim();
   const api = $('mcApi').value.trim();
-  if (!key || !name || !api) { toast('All fields required', 'error'); return; }
+  if (!key || !name || !api) { toast(t('allFieldsRequired'), 'error'); return; }
 
   const btn = $('mcAddBtn');
-  btn.textContent = 'Adding...';
+  btn.textContent = t('adding');
   btn.className = 'btn loading';
 
   try {
@@ -834,9 +970,9 @@ async function addMacCMS() {
     } else {
       toast(d.error || 'Failed', 'error');
     }
-  } catch { toast('Network error', 'error'); }
+  } catch { toast(t('networkError'), 'error'); }
 
-  btn.textContent = 'Add';
+  btn.textContent = t('add');
   btn.className = 'btn';
 }
 
@@ -849,11 +985,11 @@ async function removeMC(key) {
     });
     if (res.ok) { toast('Removed'); loadMacCMS(); }
     else { const d = await res.json(); toast(d.error || 'Failed', 'error'); }
-  } catch { toast('Network error', 'error'); }
+  } catch { toast(t('networkError'), 'error'); }
 }
 
 async function validateMC(api) {
-  toast('Testing...');
+  toast(t('testing'));
   try {
     const res = await authFetch('/admin/maccms/validate', {
       method: 'POST',
@@ -861,8 +997,8 @@ async function validateMC(api) {
       body: JSON.stringify({ api })
     });
     const d = await res.json();
-    toast(d.valid ? 'Valid' : 'Invalid / Unreachable', d.valid ? 'success' : 'error');
-  } catch { toast('Network error', 'error'); }
+    toast(d.valid ? t('valid') : t('invalidUnreachable'), d.valid ? 'success' : 'error');
+  } catch { toast(t('networkError'), 'error'); }
 }
 
 function showBatchImport() {
@@ -878,8 +1014,8 @@ async function batchImportMacCMS() {
   const raw = $('mcBatchInput').value.trim();
   if (!raw) return;
   let data;
-  try { data = JSON.parse(raw); } catch { toast('Invalid JSON', 'error'); return; }
-  if (!Array.isArray(data)) { toast('Must be a JSON array', 'error'); return; }
+  try { data = JSON.parse(raw); } catch { toast(t('invalidJson'), 'error'); return; }
+  if (!Array.isArray(data)) { toast(t('mustBeArray'), 'error'); return; }
 
   try {
     const res = await authFetch('/admin/maccms', {
@@ -895,9 +1031,9 @@ async function batchImportMacCMS() {
       $('mcBatchBtn').style.display = 'none';
       loadMacCMS();
     } else {
-      toast(d.error || 'Import failed', 'error');
+      toast(d.error || t('importFailed'), 'error');
     }
-  } catch { toast('Network error', 'error'); }
+  } catch { toast(t('networkError'), 'error'); }
 }
 
 // --- Live Sources ---
@@ -909,7 +1045,7 @@ async function loadLives() {
     $('liveCount').textContent = entries.length;
 
     if (entries.length === 0) {
-      list.innerHTML = '<div class="empty">No live sources. Add one above.</div>';
+      list.innerHTML = '<div class="empty">' + t('noLives') + '</div>';
       return;
     }
 
@@ -921,12 +1057,12 @@ async function loadLives() {
           <div class="source-url">\${esc(s.url)}</div>
         </div>
         <div class="source-actions">
-          <button class="btn btn-sm btn-danger" onclick="removeLive('\${esc(s.url)}')">Remove</button>
+          <button class="btn btn-sm btn-danger" onclick="removeLive('\${esc(s.url)}')">\${t('remove')}</button>
         </div>
       </div>
     \`).join('');
   } catch {
-    list.innerHTML = '<div class="empty">Failed to load live sources</div>';
+    list.innerHTML = '<div class="empty">' + t('failedLoadLives') + '</div>';
   }
 }
 
@@ -936,7 +1072,7 @@ async function addLive() {
   const name = $('liveName').value.trim() || '';
 
   const btn = $('liveAddBtn');
-  btn.textContent = 'Adding...';
+  btn.textContent = t('adding');
   btn.className = 'btn loading';
 
   try {
@@ -947,7 +1083,7 @@ async function addLive() {
     });
     const d = await res.json();
     if (res.ok) {
-      toast('Live source added');
+      toast(t('liveSourceAdded'));
       $('liveUrl').value = '';
       $('liveName').value = '';
       loadLives();
@@ -955,10 +1091,10 @@ async function addLive() {
       toast(d.error || 'Failed to add', 'error');
     }
   } catch {
-    toast('Network error', 'error');
+    toast(t('networkError'), 'error');
   }
 
-  btn.textContent = 'Add';
+  btn.textContent = t('add');
   btn.className = 'btn';
 }
 
@@ -969,35 +1105,36 @@ async function removeLive(url) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
-    if (res.ok) { toast('Removed'); loadLives(); }
+    if (res.ok) { toast(t('removed')); loadLives(); }
     else { const d = await res.json(); toast(d.error || 'Failed', 'error'); }
-  } catch { toast('Network error', 'error'); }
+  } catch { toast(t('networkError'), 'error'); }
 }
 
 // --- Refresh ---
 async function triggerRefresh() {
   const btn = $('refreshBtn');
-  btn.textContent = 'Running...';
+  btn.textContent = t('running');
   btn.className = 'btn loading';
 
   try {
     const res = await authFetch('/refresh', { method: 'POST' });
     const d = await res.json();
     if (d.success) {
-      toast('Aggregation started');
+      toast(t('aggregationStarted'));
       setTimeout(loadStatus, 3000);
     } else {
-      toast('Refresh failed', 'error');
+      toast(t('refreshFailed'), 'error');
     }
   } catch {
-    toast('Network error', 'error');
+    toast(t('networkError'), 'error');
   }
 
   setTimeout(() => {
-    btn.textContent = 'Refresh';
+    btn.textContent = t('refresh');
     btn.className = 'btn';
   }, 3000);
 }
+applyLang(getLang());
 </script>
 </body>
 </html>`;

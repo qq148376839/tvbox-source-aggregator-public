@@ -14,7 +14,7 @@
  */
 
 const { execSync, spawn } = require('child_process');
-const { existsSync, copyFileSync, readFileSync, mkdirSync, writeFileSync } = require('fs');
+const { existsSync, copyFileSync, readFileSync, mkdirSync, writeFileSync, statSync, readdirSync } = require('fs');
 const net = require('net');
 const path = require('path');
 const readline = require('readline');
@@ -63,6 +63,21 @@ function checkPort(port) {
     });
     server.listen(port, '0.0.0.0');
   });
+}
+
+/**
+ * 递归检查目录中是否有比 threshold 更新的 .ts 文件
+ */
+function hasNewerFiles(dir, thresholdMs) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (hasNewerFiles(full, thresholdMs)) return true;
+    } else if (entry.name.endsWith('.ts') && statSync(full).mtimeMs > thresholdMs) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // ─── Checks ──────────────────────────────────────────────
@@ -153,9 +168,16 @@ async function main() {
   }
   logOk(`端口 ${port} 可用`);
 
-  // 6. 编译
-  if (!existsSync(DIST_FILE)) {
-    log('编译项目...');
+  // 6. 编译（检测源码是否比构建产物更新）
+  let needBuild = !existsSync(DIST_FILE);
+  if (!needBuild) {
+    const distMtime = statSync(DIST_FILE).mtimeMs;
+    const srcDir = path.join(ROOT, 'src');
+    needBuild = hasNewerFiles(srcDir, distMtime);
+  }
+
+  if (needBuild) {
+    log(existsSync(DIST_FILE) ? '检测到源码变更，重新编译...' : '编译项目...');
     try {
       execSync('npm run build:node', { cwd: ROOT, stdio: 'inherit' });
       logOk('编译完成');
@@ -164,7 +186,7 @@ async function main() {
       process.exit(1);
     }
   } else {
-    logOk('已编译');
+    logOk('已编译（源码无变更）');
   }
 
   // 7. 启动

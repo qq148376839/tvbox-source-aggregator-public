@@ -63,6 +63,7 @@ function main() {
   const port = parseInt(process.env.PORT || '') || 5678;
 
   let refreshRunning = false;
+  const AGGREGATION_TIMEOUT_MS = 120_000; // 聚合整体超时 2 分钟
 
   const app = createApp({
     storage,
@@ -74,7 +75,15 @@ function main() {
       }
       refreshRunning = true;
       try {
-        await runAggregation(storage, config);
+        await Promise.race([
+          runAggregation(storage, config),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Aggregation timed out')), AGGREGATION_TIMEOUT_MS),
+          ),
+        ]);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[aggregation] Error: ${msg}`);
       } finally {
         refreshRunning = false;
       }
@@ -90,8 +99,16 @@ function main() {
       return;
     }
     refreshRunning = true;
-    runAggregation(storage, config)
-      .catch((err) => console.error('[cron] Aggregation error:', err))
+    Promise.race([
+      runAggregation(storage, config),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Aggregation timed out')), AGGREGATION_TIMEOUT_MS),
+      ),
+    ])
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[cron] Aggregation error: ${msg}`);
+      })
       .finally(() => { refreshRunning = false; });
   });
 

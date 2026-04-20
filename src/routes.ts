@@ -3,7 +3,7 @@
 import { Hono } from 'hono';
 import type { Storage } from './storage/interface';
 import type { AppConfig, SourceEntry, MacCMSSourceEntry, LiveSourceEntry } from './core/types';
-import { KV_MERGED_CONFIG, KV_MANUAL_SOURCES, KV_LAST_UPDATE, KV_MACCMS_SOURCES, KV_LIVE_SOURCES, KV_BLACKLIST, LIVE_PROXY_TTL } from './core/config';
+import { KV_MERGED_CONFIG, KV_MERGED_CONFIG_FULL, KV_MANUAL_SOURCES, KV_LAST_UPDATE, KV_MACCMS_SOURCES, KV_LIVE_SOURCES, KV_BLACKLIST, LIVE_PROXY_TTL } from './core/config';
 import { validateMacCMS } from './core/maccms';
 import { lookupJarUrl, isMd5Key } from './core/jar-proxy';
 import { lookupLiveUrl } from './core/live-source';
@@ -468,7 +468,9 @@ export function createApp(deps: AppDeps): Hono {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const cached = await storage.get(KV_MERGED_CONFIG);
+    // 读取过滤前的完整配置（含被屏蔽的项），降级到已过滤配置
+    const full = await storage.get(KV_MERGED_CONFIG_FULL);
+    const cached = full || await storage.get(KV_MERGED_CONFIG);
     if (!cached) {
       return c.json({ sites: [], parses: [], lives: [] });
     }

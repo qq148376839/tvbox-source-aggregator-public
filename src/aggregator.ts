@@ -3,12 +3,12 @@
 import type { Storage } from './storage/interface';
 import type { AppConfig, SourceEntry, SourcedConfig, MacCMSSourceEntry, LiveSourceEntry, TVBoxLive } from './core/types';
 import { fetchConfigs } from './core/fetcher';
-import { mergeConfigs, cleanLocalRefs } from './core/merger';
+import { mergeConfigs, cleanLocalRefs, cleanEmptyEntries } from './core/merger';
 import { batchSiteSpeedTest, appendSpeedToName } from './core/speedtest';
 import { macCMSToTVBoxSites, processMacCMSForLocal } from './core/maccms';
 import { rewriteJarUrls } from './core/jar-proxy';
 import { batchTestLiveSources, liveSourcesToTVBoxLives } from './core/live-source';
-import { KV_MERGED_CONFIG, KV_SOURCE_URLS, KV_LAST_UPDATE, KV_MANUAL_SOURCES, KV_MACCMS_SOURCES, KV_LIVE_SOURCES, KV_BLACKLIST } from './core/config';
+import { KV_MERGED_CONFIG, KV_MERGED_CONFIG_FULL, KV_SOURCE_URLS, KV_LAST_UPDATE, KV_MANUAL_SOURCES, KV_MACCMS_SOURCES, KV_LIVE_SOURCES, KV_BLACKLIST } from './core/config';
 import { loadBlacklist, applyBlacklist, pruneBlacklist, saveBlacklist } from './core/blacklist';
 
 export async function runAggregation(storage: Storage, config: AppConfig): Promise<void> {
@@ -101,22 +101,27 @@ async function _runAggregation(storage: Storage, config: AppConfig, startTime: n
   console.log('[aggregation] Step 4.5: Applying blacklist...');
   const blacklist = await loadBlacklist(storage);
   const hasBlacklist = blacklist.sites.length > 0 || blacklist.parses.length > 0 || blacklist.lives.length > 0;
-  if (hasBlacklist) {
-    const { config: filtered, removedSites, removedParses, removedLives } = await applyBlacklist(merged, blacklist);
-    merged = filtered;
-    console.log(`[aggregation] Blacklist removed: ${removedSites} sites, ${removedParses} parses, ${removedLives} lives`);
 
-    // 自动清理黑名单中已不存在的条目
+  // 保存过滤前的完整配置（供配置编辑器显示已屏蔽项）
+  await storage.put(KV_MERGED_CONFIG_FULL, JSON.stringify(merged));
+
+  if (hasBlacklist) {
+    // 自动清理黑名单中已不存在的条目（必须在过滤前比对，否则被屏蔽的条目会被误判为"过时"而清掉）
     const pruned = await pruneBlacklist(blacklist, merged);
     if (JSON.stringify(pruned) !== JSON.stringify(blacklist)) {
       await saveBlacklist(storage, pruned);
     }
+
+    const { config: filtered, removedSites, removedParses, removedLives } = await applyBlacklist(merged, pruned);
+    merged = filtered;
+    console.log(`[aggregation] Blacklist removed: ${removedSites} sites, ${removedParses} parses, ${removedLives} lives`);
   } else {
     console.log('[aggregation] Step 4.5: No blacklist entries, skipping');
   }
 
-  // Step 5: 清洗本地引用（127.0.0.1 / localhost）
-  console.log('[aggregation] Step 5: Cleaning local refs...');
+  // Step 5: 清洗无效数据（空条目 + 本地引用）
+  console.log('[aggregation] Step 5: Cleaning invalid entries...');
+  merged = cleanEmptyEntries(merged);
   merged = cleanLocalRefs(merged);
 
   // Step 6: 本地模式站点测速 + name 标记（CF 模式跳过）
